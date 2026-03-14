@@ -39,7 +39,6 @@ const DeliverySchema = new Schema<IDelivery>(
   { timestamps: true },
 );
 
-DeliverySchema.index({ reference: 1 });
 DeliverySchema.index({ status: 1 });
 DeliverySchema.index({ warehouse: 1 });
 

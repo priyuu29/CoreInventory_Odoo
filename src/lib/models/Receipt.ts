@@ -39,7 +39,6 @@ const ReceiptSchema = new Schema<IReceipt>(
   { timestamps: true },
 );
 
-ReceiptSchema.index({ reference: 1 });
 ReceiptSchema.index({ status: 1 });
 ReceiptSchema.index({ warehouse: 1 });
 ReceiptSchema.index({ schedule_date: 1 });
