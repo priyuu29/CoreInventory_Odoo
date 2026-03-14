@@ -111,22 +111,26 @@ export default function ReceiptDetailPage({ params }: { params: Promise<{ id: st
         {isEditing ? (
           <Column gap="16">
             <Input
+              id="reference"
               label="Reference"
               value={formData.reference}
               onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
             />
             <Input
+              id="vendor"
               label="Vendor"
               value={formData.vendor}
               onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
             />
             <Input
+              id="schedule_date"
               label="Schedule Date"
               type="date"
               value={formData.schedule_date}
               onChange={(e) => setFormData({ ...formData, schedule_date: e.target.value })}
             />
             <Input
+              id="notes"
               label="Notes"
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}

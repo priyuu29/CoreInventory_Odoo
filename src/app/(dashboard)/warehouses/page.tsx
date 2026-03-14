@@ -1,6 +1,5 @@
 "use client";
 
-import { SkeletonPage } from "@/components/Skeleton";
 import { queryKeys, warehousesApi } from "@/lib/api";
 import type { Warehouse } from "@/types";
 import { Button, Card, Column, Dialog, Flex, Grid, Input, Row, Text } from "@once-ui-system/core";
@@ -78,29 +77,58 @@ export default function WarehousesPage() {
   };
 
   return (
-    <Column fillWidth gap="24" padding="24">
+    <Column fillWidth gap="24" padding="32" style={{ maxWidth: "1200px", margin: "0 auto" }}>
       <Row vertical="center" horizontal="between">
         <Text variant="heading-default-xl">Warehouses</Text>
-        <Button variant="primary" prefixIcon="plus" onClick={() => setShowDialog(true)}>
+        <Button
+          variant="primary"
+          prefixIcon="plus"
+          onClick={() => setShowDialog(true)}
+          style={{ padding: "8px 14px", borderRadius: "8px", fontWeight: 500 }}
+        >
           New Warehouse
         </Button>
       </Row>
 
       {isLoading ? (
-        <SkeletonPage variant="cards" />
+        <Grid columns={3} gap="24" m={{ columns: 2 }} s={{ columns: 1 }}>
+          {[1, 2, 3].map((i) => (
+            <Card
+              key={i}
+              padding="20"
+              radius="l"
+              fillWidth
+              style={{ height: "200px", background: "var(--neutral-alpha-weak)" }}
+            />
+          ))}
+        </Grid>
       ) : warehouses.length === 0 ? (
-        <Card padding="32" horizontal="center" fillWidth>
-          <Column gap="12" horizontal="center">
-            <Text variant="body-default-m" onBackground="neutral-weak">
-              No warehouses found
-            </Text>
-            <Button variant="secondary" onClick={() => setShowDialog(true)}>
-              Create First Warehouse
-            </Button>
-          </Column>
+        <Card
+          padding="64"
+          radius="l"
+          fillWidth
+          direction="column"
+          horizontal="center"
+          vertical="center"
+          gap="16"
+          style={{ border: "1px dashed var(--neutral-alpha-medium)" }}
+        >
+          <Text variant="heading-default-m">No warehouses yet</Text>
+          <Text variant="body-default-m" onBackground="neutral-weak">
+            Create your first warehouse to start organizing inventory.
+          </Text>
+          <Button variant="primary" prefixIcon="plus" onClick={() => setShowDialog(true)}>
+            + New Warehouse
+          </Button>
         </Card>
       ) : (
-        <Grid columns={3} gap="16" m={{ columns: 2 }} s={{ columns: 1 }}>
+        <Grid
+          columns={3}
+          gap="24"
+          m={{ columns: 2 }}
+          s={{ columns: 1 }}
+          style={{ gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))" }}
+        >
           {warehouses.map((warehouse) => (
             <WarehouseCard
               key={warehouse.id}
@@ -145,7 +173,7 @@ export default function WarehousesPage() {
             />
           </Column>
         </form>
-        <Flex gap="12" justifyContent="flexEnd" marginTop="24">
+        <Flex gap="12" style={{ justifyContent: "flex-end", marginTop: "24" }}>
           <Button variant="tertiary" onClick={closeDialog}>
             Cancel
           </Button>
@@ -171,35 +199,80 @@ interface WarehouseCardProps {
 
 function WarehouseCard({ warehouse, onView, onEdit, onDelete }: WarehouseCardProps) {
   return (
-    <Card padding="20" radius="l" direction="column" gap="16" fillWidth>
-      <Row vertical="center" horizontal="between">
-        <Column gap="4">
-          <Text variant="heading-default-m">{warehouse.name}</Text>
-          <Text variant="label-default-s" onBackground="neutral-weak">
-            {warehouse.short_code}
-          </Text>
-        </Column>
-      </Row>
+    <Card
+      padding="20"
+      radius="l"
+      direction="column"
+      gap="16"
+      fillWidth
+      style={{
+        background: "var(--surface)",
+        border: "1px solid var(--neutral-alpha-medium)",
+        maxWidth: "360px",
+        transition: "all 0.2s ease",
+      }}
+      onClick={onView}
+    >
+      <Column gap="4">
+        <Text variant="heading-default-m" style={{ fontSize: "18px" }}>
+          {warehouse.name}
+        </Text>
+        <Text
+          variant="label-default-s"
+          style={{
+            background: "var(--neutral-alpha-weak)",
+            padding: "4px 8px",
+            borderRadius: "6px",
+            fontSize: "12px",
+            display: "inline-block",
+            width: "fit-content",
+          }}
+        >
+          {warehouse.short_code}
+        </Text>
+      </Column>
 
-      <Text variant="body-default-s" onBackground="neutral-weak">
-        {warehouse.address || "No address"}
+      <Text
+        variant="body-default-s"
+        onBackground="neutral-weak"
+        style={{ fontSize: "14px", minHeight: "40px" }}
+      >
+        {warehouse.address || "No address provided"}
       </Text>
 
-      <Row vertical="center" horizontal="between">
-        <Text variant="label-default-s" onBackground="neutral-weak">
-          Locations
+      <Row vertical="center" horizontal="between" style={{ padding: "8px 0" }}>
+        <Text variant="label-default-s" onBackground="neutral-weak" style={{ fontSize: "13px" }}>
+          📍 Locations
         </Text>
-        <Text variant="body-default-m">{warehouse.locations_count || 0}</Text>
+        <Text variant="body-default-m" style={{ fontSize: "16px", fontWeight: 600 }}>
+          {warehouse.locations_count || 0}
+        </Text>
       </Row>
 
-      <Row gap="8">
-        <Button variant="secondary" size="s" fillWidth onClick={onView}>
-          View
+      <Row gap="8" onClick={(e) => e.stopPropagation()}>
+        <Button
+          variant="secondary"
+          size="s"
+          fillWidth
+          onClick={onView}
+          style={{ padding: "8px 12px", borderRadius: "8px" }}
+        >
+          View Warehouse
         </Button>
-        <Button variant="tertiary" size="s" onClick={onEdit}>
+        <Button
+          variant="tertiary"
+          size="s"
+          onClick={onEdit}
+          style={{ color: "var(--neutral-strong)" }}
+        >
           Edit
         </Button>
-        <Button variant="tertiary" size="s" onClick={onDelete}>
+        <Button
+          variant="tertiary"
+          size="s"
+          onClick={onDelete}
+          style={{ color: "var(--danger-strong)" }}
+        >
           Delete
         </Button>
       </Row>

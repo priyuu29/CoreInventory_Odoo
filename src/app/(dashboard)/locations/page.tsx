@@ -1,8 +1,9 @@
 "use client";
 
+import { SkeletonTable } from "@/components/Skeleton";
 import { locationsApi, queryKeys, warehousesApi } from "@/lib/api";
 import type { Location } from "@/types";
-import { Button, Card, Column, Dialog, Flex, Input, Row, Text } from "@once-ui-system/core";
+import { Button, Card, Column, Dialog, Flex, Input, Row, Select, Text } from "@once-ui-system/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
@@ -10,7 +11,6 @@ export default function LocationsPage() {
   const queryClient = useQueryClient();
   const [warehouseId, setWarehouseId] = useState("all");
   const [showDialog, setShowDialog] = useState(false);
-  const [editingLocation, setEditingLocation] = useState<Location | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     short_code: "",
@@ -32,23 +32,8 @@ export default function LocationsPage() {
     mutationFn: (data: Partial<Location>) => locationsApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.locations.all });
-      closeDialog();
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Location> }) =>
-      locationsApi.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.locations.all });
-      closeDialog();
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => locationsApi.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.locations.all });
+      setShowDialog(false);
+      setFormData({ name: "", short_code: "", description: "", warehouse_id: "" });
     },
   });
 
@@ -57,34 +42,7 @@ export default function LocationsPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingLocation) {
-      updateMutation.mutate({ id: editingLocation.id, data: formData });
-    } else {
-      createMutation.mutate(formData);
-    }
-  };
-
-  const closeDialog = () => {
-    setShowDialog(false);
-    setEditingLocation(null);
-    setFormData({ name: "", short_code: "", description: "", warehouse_id: "" });
-  };
-
-  const openEditDialog = (location: Location) => {
-    setEditingLocation(location);
-    setFormData({
-      name: location.name,
-      short_code: location.short_code,
-      description: location.description || "",
-      warehouse_id: location.warehouse?.id || "",
-    });
-    setShowDialog(true);
-  };
-
-  const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this location?")) {
-      deleteMutation.mutate(id);
-    }
+    createMutation.mutate(formData);
   };
 
   return (
@@ -96,41 +54,23 @@ export default function LocationsPage() {
         </Button>
       </Row>
 
-      <Card padding="16" radius="m" fillWidth>
-        <Flex gap="12" wrap vertical="center">
-          <Column gap="4">
-            <Text variant="label-default-xs" onBackground="neutral-weak">
-              Warehouse
-            </Text>
-            <Row gap="2">
-              <Button
-                variant={warehouseId === "all" ? "primary" : "tertiary"}
-                size="s"
-                onClick={() => setWarehouseId("all")}
-              >
-                All
-              </Button>
-              {warehouses.slice(0, 3).map((w) => (
-                <Button
-                  key={w.id}
-                  variant={warehouseId === w.id ? "primary" : "tertiary"}
-                  size="s"
-                  onClick={() => setWarehouseId(w.id)}
-                >
-                  {w.name.substring(0, 8)}
-                </Button>
-              ))}
-            </Row>
-          </Column>
-        </Flex>
-      </Card>
+      <Row gap="12" vertical="center">
+        <Select
+          id="warehouse"
+          label="Filter by Warehouse"
+          value={warehouseId}
+          onSelect={(value: any) => setWarehouseId(value)}
+          options={[
+            { value: "all", label: "All Warehouses" },
+            ...warehouses.map((w) => ({ value: w.id, label: w.name })),
+          ]}
+        />
+      </Row>
 
       {isLoading ? (
-        <Card padding="32" horizontal="center" fillWidth>
-          <Text variant="body-default-m">Loading...</Text>
-        </Card>
+        <SkeletonTable rows={8} columns={5} />
       ) : locations.length === 0 ? (
-        <Card padding="32" horizontal="center" fillWidth>
+        <Card padding="32" horizontal="center">
           <Column gap="12" horizontal="center">
             <Text variant="body-default-m" onBackground="neutral-weak">
               No locations found
@@ -141,7 +81,7 @@ export default function LocationsPage() {
           </Column>
         </Card>
       ) : (
-        <Card padding="0" radius="m" overflow="hidden" fillWidth direction="column">
+        <Card padding="0" radius="l" overflow="hidden" direction="column">
           <Row padding="16" background="neutral-alpha-weak" border="neutral-alpha-medium">
             <Text variant="label-default-m" style={{ flex: 1 }}>
               Name
@@ -174,10 +114,10 @@ export default function LocationsPage() {
                 {location.description || "-"}
               </Text>
               <Row gap="4" style={{ width: "150px" }}>
-                <Button variant="tertiary" size="s" onClick={() => openEditDialog(location)}>
+                <Button variant="tertiary" size="s">
                   Edit
                 </Button>
-                <Button variant="tertiary" size="s" onClick={() => handleDelete(location.id)}>
+                <Button variant="tertiary" size="s">
                   Delete
                 </Button>
               </Row>
@@ -186,11 +126,7 @@ export default function LocationsPage() {
         </Card>
       )}
 
-      <Dialog
-        isOpen={showDialog}
-        onClose={closeDialog}
-        title={editingLocation ? "Edit Location" : "New Location"}
-      >
+      <Dialog isOpen={showDialog} onClose={() => setShowDialog(false)} title="New Location">
         <form onSubmit={handleSubmit}>
           <Column gap="16" fillWidth>
             <Input
@@ -209,6 +145,17 @@ export default function LocationsPage() {
               required
               placeholder="e.g., A-01-01"
             />
+            <Select
+              id="warehouse_id"
+              label="Warehouse"
+              value={formData.warehouse_id}
+              onSelect={(value: any) => setFormData({ ...formData, warehouse_id: value })}
+              required
+              options={[
+                { value: "", label: "Select Warehouse" },
+                ...warehouses.map((w) => ({ value: w.id, label: w.name })),
+              ]}
+            />
             <Input
               id="description"
               label="Description"
@@ -218,16 +165,12 @@ export default function LocationsPage() {
             />
           </Column>
         </form>
-        <Flex gap="12" justifyContent="flexEnd" marginTop="24">
-          <Button variant="tertiary" onClick={closeDialog}>
+        <Flex gap="12" style={{ justifyContent: "flex-end", marginTop: "24" }}>
+          <Button variant="tertiary" onClick={() => setShowDialog(false)}>
             Cancel
           </Button>
-          <Button
-            variant="primary"
-            onClick={handleSubmit}
-            loading={createMutation.isPending || updateMutation.isPending}
-          >
-            {editingLocation ? "Save" : "Create"}
+          <Button variant="primary" onClick={handleSubmit} loading={createMutation.isPending}>
+            Create
           </Button>
         </Flex>
       </Dialog>

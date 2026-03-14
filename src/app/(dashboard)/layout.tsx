@@ -1,7 +1,7 @@
 "use client";
 
 import { authApi } from "@/lib/api";
-import { Button, Column, Flex, Icon, Row, Text } from "@once-ui-system/core";
+import { Column, Flex, Icon, Row, Text } from "@once-ui-system/core";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -23,6 +23,7 @@ export default function ProtectedLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -30,6 +31,21 @@ export default function ProtectedLayout({
       router.push("/login");
     }
   }, [router]);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  useEffect(() => {
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
+  }, [pathname, isMobile]);
 
   const handleLogout = async () => {
     try {
@@ -43,120 +59,206 @@ export default function ProtectedLayout({
   };
 
   return (
-    <Flex fillWidth minHeight="100vh">
+    <Flex fillWidth minHeight="100vh" className="layout-container">
       {/* Mobile Toggle Button */}
-      <Flex
-        as="button"
-        position="fixed"
-        top="12"
-        left="12"
-        zIndex={10}
-        background="surface"
-        border="neutral-alpha-medium"
-        radius="m"
-        padding="8"
-        style={{ display: "none" }}
-        onClick={() => setSidebarOpen(!sidebarOpen)}
+      <button
         className="mobile-toggle"
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        aria-label="Toggle menu"
       >
-        <Icon name="menu" size="m" />
-      </Flex>
-
-      {/* Sidebar */}
-      <Flex
-        direction="column"
-        fillHeight
-        padding="16"
-        gap="8"
-        background="surface"
-        border="neutral-alpha-weak"
-        position="sticky"
-        top="0"
-        style={{
-          width: "240px",
-          minWidth: "240px",
-          height: "100vh",
-        }}
-        className="sidebar"
-      >
-        {/* Logo */}
-        <Row
-          gap="8"
-          vertical="center"
-          paddingBottom="16"
-          border="neutral-alpha-weak"
-          style={{ cursor: "pointer" }}
-          onClick={() => router.push("/dashboard")}
-        >
-          <Icon name="package" size="l" onBackground="brand-strong" />
-          <Text variant="heading-default-m">CoreInventory</Text>
-        </Row>
-
-        {/* Navigation */}
-        <Column gap="4" flex={1}>
-          {navItems.map((item) => (
-            <Button
-              key={item.href}
-              variant={pathname === item.href ? "secondary" : "tertiary"}
-              size="l"
-              fillWidth
-              href={item.href}
-              onClick={() => setSidebarOpen(false)}
-            >
-              <Flex gap="8" align="center" style={{ justifyContent: "flex-start" }}>
-                <Icon name={item.icon as any} size="s" />
-                <Text variant="body-default-m">{item.label}</Text>
-              </Flex>
-            </Button>
-          ))}
-        </Column>
-
-        {/* Logout */}
-        <Button variant="tertiary" size="l" fillWidth onClick={handleLogout}>
-          <Flex gap="8" align="center" style={{ justifyContent: "flex-start" }}>
-            <Icon name="logOut" size="s" />
-            <Text variant="body-default-m">Logout</Text>
-          </Flex>
-        </Button>
-      </Flex>
+        {sidebarOpen ? (
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        ) : (
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M3 12h18M3 6h18M3 18h18" />
+          </svg>
+        )}
+      </button>
 
       {/* Mobile Overlay */}
-      {sidebarOpen && (
-        <Flex
-          position="fixed"
-          top="0"
-          left="0"
-          fillWidth
-          fillHeight
-          background="neutral-alpha-weak"
-          zIndex={5}
-          style={{ cursor: "pointer" }}
-          onClick={() => setSidebarOpen(false)}
-          className="mobile-overlay"
-        />
+      {isMobile && sidebarOpen && (
+        <div className="mobile-overlay" onClick={() => setSidebarOpen(false)} />
       )}
 
+      {/* Sidebar */}
+      <aside
+        className={`sidebar ${sidebarOpen ? "open" : ""}`}
+        style={{ background: "var(--surface)" } as React.CSSProperties}
+      >
+        {/* Logo */}
+        <div className="logo" onClick={() => router.push("/dashboard")}>
+          <Icon name="package" size="l" onBackground="brand-strong" />
+          <Text variant="heading-default-m">CoreInventory</Text>
+        </div>
+
+        {/* Navigation */}
+        <nav className="nav">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <button
+                key={item.href}
+                className={`nav-item ${isActive ? "active" : ""}`}
+                onClick={() => {
+                  router.push(item.href);
+                  if (isMobile) setSidebarOpen(false);
+                }}
+              >
+                <Icon
+                  name={item.icon as any}
+                  size="s"
+                  onBackground={isActive ? "brand-strong" : "neutral-strong"}
+                />
+                <Text
+                  variant="body-default-m"
+                  onBackground={isActive ? "neutral-strong" : "neutral-weak"}
+                >
+                  {item.label}
+                </Text>
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Logout */}
+        <button className="nav-item logout" onClick={handleLogout}>
+          <Icon name="logOut" size="s" onBackground="neutral-weak" />
+          <Text variant="body-default-m" onBackground="neutral-weak">
+            Logout
+          </Text>
+        </button>
+      </aside>
+
       {/* Main Content */}
-      <Column flex={1} padding="24" className="main-content">
-        {children}
-      </Column>
+      <main className="main-content">{children}</main>
 
       <style jsx>{`
+        .layout-container {
+          position: relative;
+        }
+        .mobile-toggle {
+          display: none;
+          position: fixed;
+          top: 12px;
+          left: 12px;
+          z-index: 100;
+          background: var(--surface);
+          border: 1px solid var(--neutral-alpha-medium);
+          border-radius: 8px;
+          padding: 8px;
+          cursor: pointer;
+          color: var(--neutral-on-background);
+        }
+        .mobile-overlay {
+          display: none;
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.5);
+          z-index: 40;
+        }
+        .sidebar {
+          position: fixed;
+          top: 0;
+          left: 0;
+          height: 100vh;
+          width: 260px;
+          min-width: 260px;
+          border-right: 1px solid var(--neutral-alpha-weak);
+          display: flex;
+          flex-direction: column;
+          padding: 16px;
+          z-index: 50;
+          transition: transform 0.3s ease;
+        }
+        .logo {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding-bottom: 16px;
+          margin-bottom: 8px;
+          border-bottom: 1px solid var(--neutral-alpha-weak);
+          cursor: pointer;
+        }
+        .nav {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          flex: 1;
+        }
+        .nav-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 12px;
+          border-radius: 8px;
+          margin-bottom: 4px;
+          cursor: pointer;
+          background: transparent;
+          border: none;
+          width: 100%;
+          text-align: left;
+          transition: all 0.2s ease;
+          color: var(--neutral-on-background-weak);
+        }
+        .nav-item:hover {
+          background: var(--neutral-alpha-weak);
+        }
+        .nav-item.active {
+          background: var(--brand-alpha-weak);
+        }
+        .nav-item.logout {
+          color: var(--neutral-on-background-weak);
+          margin-top: auto;
+        }
+        .main-content {
+          flex: 1;
+          padding: 32px;
+          margin-left: 260px;
+          min-height: 100vh;
+          width: calc(100% - 260px);
+        }
+
+        /* Mobile Styles */
         @media (max-width: 768px) {
           .mobile-toggle {
-            display: flex !important;
-          }
-          .sidebar {
-            position: fixed !important;
-            left: ${sidebarOpen ? "0" : "-260px"};
-            transition: left 0.3s ease;
-            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
           }
           .mobile-overlay {
-            display: flex !important;
+            display: block;
+          }
+          .sidebar {
+            transform: translateX(-100%);
+            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+          }
+          .sidebar.open {
+            transform: translateX(0);
           }
           .main-content {
-            padding-top: 60px !important;
+            margin-left: 0;
+            width: 100%;
+            padding: 24px;
+            padding-top: 60px;
           }
         }
       `}</style>

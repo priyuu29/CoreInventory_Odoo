@@ -38,7 +38,7 @@ export default function DeliveryDetailPage({ params }: { params: Promise<{ id: s
   const startEdit = () => {
     if (delivery) {
       setFormData({
-        customer: delivery.customer || "",
+        customer: delivery.contact || "",
         destination: delivery.destination || "",
         warehouse_id: delivery.warehouse?.id || "",
         schedule_date: delivery.schedule_date ? delivery.schedule_date.split("T")[0] : "",
@@ -113,27 +113,32 @@ export default function DeliveryDetailPage({ params }: { params: Promise<{ id: s
         {isEditing ? (
           <Column gap="16">
             <Input
+              id="reference"
               label="Reference"
               value={formData.reference}
               onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
             />
             <Input
+              id="customer"
               label="Customer"
               value={formData.customer}
               onChange={(e) => setFormData({ ...formData, customer: e.target.value })}
             />
             <Input
+              id="destination"
               label="Destination"
               value={formData.destination}
               onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
             />
             <Input
+              id="schedule_date"
               label="Schedule Date"
               type="date"
               value={formData.schedule_date}
               onChange={(e) => setFormData({ ...formData, schedule_date: e.target.value })}
             />
             <Input
+              id="notes"
               label="Notes"
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
@@ -145,7 +150,7 @@ export default function DeliveryDetailPage({ params }: { params: Promise<{ id: s
               <Text variant="label-default-s" onBackground="neutral-weak">
                 Customer
               </Text>
-              <Text variant="body-default-m">{delivery.customer || "-"}</Text>
+              <Text variant="body-default-m">{delivery.contact || "-"}</Text>
             </Column>
             <Column gap="4">
               <Text variant="label-default-s" onBackground="neutral-weak">
