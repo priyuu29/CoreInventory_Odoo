@@ -1,67 +1,155 @@
-# Once UI for Next.js
+# CoreInventory
 
-A design system for indie builders, startups and freelancers. Once UI combines the simplicity of low-code with the power of code: write 70% less compared to shadcn + Tailwind. Includes 100+ advanced, open-source components.
+A modern inventory management system built with Next.js, Once UI, MongoDB, and Mongoose.
 
-Check the demo [here](https://demo.once-ui.com).
-
-![Once UI](public/images/og/home.jpg)
+![CoreInventory](public/images/og/home.jpg)
 
 ## Features
 
-A lightweight starter template with the [Once UI Core](https://github.com/once-ui-system/core) package and our recommended setup.
+- **Dashboard** - Real-time overview of receipts, deliveries, and operations
+- **Receipts** - Manage inventory receipts with list and kanban views
+- **Deliveries** - Track deliveries with list and kanban views
+- **Stock** - View current stock levels across warehouses
+- **Warehouses** - Manage multiple warehouses
+- **Locations** - Organize storage locations within warehouses
+- **Moves** - Track all inventory movements (receipts, deliveries, adjustments)
 
-* **Customization**: Manage design config in a single file.
-* **Components**: Access advanced components with simple APIs.
-* **Data-viz**: Add responsive charts with a few lines of code.
-* **SEO**: Use our SEO components to simplify meta and schema setup.
-* **PRO**: Launch ready-made apps with minimal coding with Once UI Pro.
+## Tech Stack
 
-## Documentation
+- **Frontend**: Next.js 16, Once UI, React Query
+- **Backend**: Next.js API Routes, MongoDB, Mongoose
+- **Authentication**: JWT-based auth
 
-Learn how to build with Once UI at [docs.once-ui.com](https://docs.once-ui.com/once-ui/quick-start).
+## Getting Started
 
-## Quick start
+### Prerequisites
 
-[Magic Portfolio](https://once-ui.com/products/magic-portfolio) (FREE): Portfolio starter used and loved by thousands of creatives. Simple, customizable, responsive.
+- Node.js 18+
+- MongoDB (local or Atlas)
 
-[Magic Docs](https://once-ui.com/products/magic-docs) (FREE): Documentation generator. Just add your MDX files and let Magic Docs handle the rest.
+### Installation
 
-[Magic Convert](https://once-ui.com/products/magic-convert) (PRO): Conversion-optimized landing page and dashboard template.
-
-[Once UI Blocks](https://once-ui.com/blocks) (PRO): Copy-paste pre-designed blocks and deploy fully-functional sites with lightning speed.
-
-[Get Once UI Pro](https://once-ui.com/pricing)
-
-## Design
-
-The design counterpart of the Once UI system is available [here](https://once-ui.com/figma).
-
-## Get started
-
-Clone the starter template from GitHub:
+1. Clone the repository:
 ```bash
-git clone https://github.com/once-ui-system/nextjs-starter.git
+git clone https://github.com/priyuu29/CoreInventory_Odoo.git
 ```
 
-## Creators
+2. Install dependencies:
+```bash
+npm install
+```
 
-Connect with us!
+3. Set up environment variables:
+```bash
+cp .env.example .env.local
+```
 
-**Lorant One**: [Site](https://lorant.one)
+Edit `.env.local` with your MongoDB URI:
+```
+MONGODB_URI=mongodb://localhost:27017/coreinventory
+JWT_SECRET=your-secret-key
+```
 
-**Design Engineers Club**: [Site](https://designengineers.club)
+4. Run the development server:
+```bash
+npm run dev
+```
 
-## Contribute
+5. Open [http://localhost:3000](http://localhost:3000)
 
-Please use the Once UI Core [GitHub repository](https://github.com/once-ui-system/core) for design system contributions.
+## Project Structure
 
-## Sponsors
+```
+src/
+├── app/                    # Next.js app router
+│   ├── (auth)/            # Auth pages (login, register)
+│   ├── (dashboard)/       # Protected dashboard pages
+│   │   ├── dashboard/     # Dashboard
+│   │   ├── receipts/     # Receipts
+│   │   ├── deliveries/   # Deliveries
+│   │   ├── stocks/       # Stock
+│   │   ├── warehouses/   # Warehouses
+│   │   ├── locations/    # Locations
+│   │   └── moves/        # Move history
+│   └── api/              # API routes
+├── components/            # React components
+├── lib/                  # Utilities and configs
+│   ├── api/              # API client
+│   ├── models/           # Mongoose models
+│   └── db.ts            # Database connection
+└── types/                # TypeScript types
+```
 
-Once UI is an indie project. [Sponsor us](https://github.com/sponsors/once-ui-system) and get featured on our site!
+## Deployment
+
+### Vercel
+
+Deploy to Vercel with MongoDB Atlas:
+
+1. Push to GitHub
+2. Import project in Vercel
+3. Add environment variables:
+   - `MONGODB_URI` - Your MongoDB Atlas connection string
+   - `JWT_SECRET` - A secure random string
+4. Deploy!
+
+## API Endpoints
+
+### Authentication
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - Login
+- `GET /api/auth/me` - Get current user
+- `POST /api/auth/logout` - Logout
+
+### Receipts
+- `GET /api/receipts` - List receipts
+- `POST /api/receipts` - Create receipt
+- `GET /api/receipts/[id]` - Get receipt details
+- `PUT /api/receipts/[id]` - Update receipt
+- `DELETE /api/receipts/[id]` - Delete receipt
+- `POST /api/receipts/[id]/validate` - Validate receipt
+- `POST /api/receipts/[id]/complete` - Complete receipt
+
+### Deliveries
+- `GET /api/deliveries` - List deliveries
+- `POST /api/deliveries` - Create delivery
+- `GET /api/deliveries/[id]` - Get delivery details
+- `PUT /api/deliveries/[id]` - Update delivery
+- `DELETE /api/deliveries/[id]` - Delete delivery
+- `POST /api/deliveries/[id]/validate` - Validate delivery
+- `POST /api/deliveries/[id]/complete` - Complete delivery
+
+### Stock
+- `GET /api/stocks` - List stock levels
+- `POST /api/stocks/adjust` - Adjust stock
+
+### Warehouses
+- `GET /api/warehouses` - List warehouses
+- `POST /api/warehouses` - Create warehouse
+- `GET /api/warehouses/[id]` - Get warehouse details
+- `PUT /api/warehouses/[id]` - Update warehouse
+- `DELETE /api/warehouses/[id]` - Delete warehouse
+- `GET /api/warehouses/[id]/stats` - Get warehouse stats
+
+### Locations
+- `GET /api/locations` - List locations
+- `POST /api/locations` - Create location
+- `GET /api/locations/[id]` - Get location details
+- `PUT /api/locations/[id]` - Update location
+- `DELETE /api/locations/[id]` - Delete location
+
+### Moves
+- `GET /api/moves` - List movements
+- `POST /api/moves` - Create movement
+
+### Products
+- `GET /api/products` - List products
+- `POST /api/products` - Create product
+- `GET /api/products/[id]` - Get product details
+- `PUT /api/products/[id]` - Update product
+- `DELETE /api/products/[id]` - Delete product
+- `GET /api/products/search` - Search products
 
 ## License
 
-Distributed under the MIT License. See `LICENSE.txt` for more information.
-
-## Deploy to Vercel
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fonce-ui-system%2Fnextjs-starter&project-name=nextjs-starter&repository-name=nextjs-starter&redirect-url=https%3A%2F%2Fgithub.com%2Fonce-ui-system%2Fnextjs-starter&demo-title=Next.js%20Starter&demo-description=Showcase%20your%20designers%20or%20developer%20portfolio&demo-url=https%3A%2F%2Fdemo.nextjs-starter.com&demo-image=%2F%2Fraw.githubusercontent.com%2Fonce-ui-system%2Fnextjs-starter%2Fmain%2Fpublic%2Fimages%2Fog%2Fhome.jpg)
+MIT License
