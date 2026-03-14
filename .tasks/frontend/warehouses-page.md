@@ -1,4 +1,4 @@
-# Warehouse Page
+# Warehouse Page - Once UI Implementation
 
 ## Route
 `/warehouses`
@@ -11,98 +11,129 @@ src/app/(dashboard)/warehouses/
 └── NewWarehouseModal.tsx
 ```
 
-## UI Layout
-
-```
-┌─────────────────────────────────────────────────────────┐
-│ Warehouses                             [+ New Warehouse]│
-├─────────────────────────────────────────────────────────┤
-│ ┌─────────────────┐ ┌─────────────────┐                 │
-│ │ Main Warehouse  │ │ Store Front     │                 │
-│ │ WH              │ │ SF              │                 │
-│ │ 123 Main St     │ │ 456 Oak Ave     │                 │
-│ │ Locations: 5    │ │ Locations: 3    │                 │
-│ │ [Edit] [Delete] │ │ [Edit] [Delete] │                 │
-│ └─────────────────┘ └─────────────────┘                 │
-└─────────────────────────────────────────────────────────┘
-```
-
 ## page.tsx
 ```tsx
-'use client';
+"use client";
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { PageHeader } from '@/components/layout/PageHeader';
-import { Button } from '@/components/ui/button';
-import { WarehouseCard } from './WarehouseCard';
-import { NewWarehouseModal } from './NewWarehouseModal';
+import { useRouter } from 'next/navigation';
+import {
+  Column,
+  Row,
+  Grid,
+  Card,
+  Text,
+  Button,
+  Dialog,
+  Input,
+  Badge,
+} from "@once-ui-system/core";
+import { warehousesApi, queryKeys } from '@/lib/api';
+import { Warehouse } from '@/types';
 
 export default function WarehousesPage() {
+  const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['warehouses'],
-    queryFn: () => fetch('/api/warehouses').then(res => res.json()),
+    queryKey: queryKeys.warehouses.list,
+    queryFn: () => warehousesApi.list(),
   });
 
+  const warehouses = data?.data || [];
+
   return (
-    <div className="space-y-4">
-      <PageHeader
-        title="Warehouses"
-        actions={<Button onClick={() => setModalOpen(true)}>+ New Warehouse</Button>}
+    <Column fillWidth gap="24" padding="24">
+      {/* Header */}
+      <Row vertical="center" horizontal="space-between">
+        <Text variant="heading-default-xl">Warehouses</Text>
+        <Button variant="primary" prefixIcon="plus" onClick={() => setModalOpen(true)}>
+          New Warehouse
+        </Button>
+      </Row>
+
+      {/* Warehouse Grid */}
+      {isLoading ? (
+        <Card padding="32" horizontal="center">
+          <Text variant="body-default-m">Loading warehouses...</Text>
+        </Card>
+      ) : warehouses.length === 0 ? (
+        <Card padding="32" horizontal="center">
+          <Column gap="12" horizontal="center">
+            <Text variant="body-default-m" onBackground="neutral-weak">No warehouses found</Text>
+            <Button variant="secondary" onClick={() => setModalOpen(true)}>
+              Create First Warehouse
+            </Button>
+          </Column>
+        </Card>
+      ) : (
+        <Grid columns="3" gap="16" m={{ columns: 2 }} s={{ columns: 1 }}>
+          {warehouses.map((warehouse) => (
+            <WarehouseCard 
+              key={warehouse.id} 
+              warehouse={warehouse}
+              onView={() => router.push(`/warehouses/${warehouse.id}`)}
+            />
+          ))}
+        </Grid>
+      )}
+
+      {/* New Warehouse Modal */}
+      <NewWarehouseModal 
+        open={modalOpen} 
+        onClose={() => setModalOpen(false)}
       />
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {data?.data?.map((warehouse: any) => (
-          <WarehouseCard key={warehouse.id} warehouse={warehouse} />
-        ))}
-      </div>
-
-      <NewWarehouseModal open={modalOpen} onOpenChange={setModalOpen} />
-    </div>
+    </Column>
   );
 }
-```
 
-### WarehouseCard.tsx
-```tsx
-'use client';
+// Warehouse Card Component
+interface WarehouseCardProps {
+  warehouse: Warehouse;
+  onView: () => void;
+}
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { useRouter } from 'next/navigation';
-
-export function WarehouseCard({ warehouse }: { warehouse: any }) {
-  const router = useRouter();
-
+function WarehouseCard({ warehouse, onView }: WarehouseCardProps) {
   return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-lg">{warehouse.name}</CardTitle>
-        <span className="text-sm font-mono text-slate-500">{warehouse.short_code}</span>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-sm text-slate-500">{warehouse.address}</p>
-        
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-slate-500">Locations:</span>
-          <span className="font-medium">{warehouse.locations_count || 0}</span>
-        </div>
+    <Card 
+      padding="20" 
+      radius="l" 
+      direction="column" 
+      gap="16"
+      hover={{ scale: '2' }}
+    >
+      <Row vertical="center" horizontal="space-between">
+        <Column gap="4">
+          <Text variant="heading-default-m">{warehouse.name}</Text>
+          <Badge variant="neutral" size="s">{warehouse.short_code}</Badge>
+        </Column>
+      </Row>
 
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1"
-            onClick={() => router.push(`/warehouses/${warehouse.id}`)}
-          >
-            View
-          </Button>
-          <Button variant="ghost" size="sm">Edit</Button>
-          <Button variant="ghost" size="sm" className="text-red-500">Delete</Button>
-        </div>
-      </CardContent>
+      <Text variant="body-default-s" onBackground="neutral-weak">
+        {warehouse.address || 'No address'}
+      </Text>
+
+      <Row vertical="center" horizontal="space-between">
+        <Text variant="label-default-s" onBackground="neutral-weak">
+          Locations
+        </Text>
+        <Text variant="body-default-m" fontWeight="m">
+          {warehouse.locations_count || 0}
+        </Text>
+      </Row>
+
+      <Row gap="8">
+        <Button variant="secondary" size="s" fillWidth onClick={onView}>
+          View
+        </Button>
+        <Button variant="tertiary" size="s">
+          Edit
+        </Button>
+        <Button variant="tertiary" size="s" onBackground="danger-strong">
+          Delete
+        </Button>
+      </Row>
     </Card>
   );
 }
@@ -110,83 +141,156 @@ export function WarehouseCard({ warehouse }: { warehouse: any }) {
 
 ## NewWarehouseModal.tsx
 ```tsx
-'use client';
+"use client";
 
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Modal } from '@/components/shared/Modal';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  Button,
+  Input,
+  Column,
+  Row,
+  Text,
+} from "@once-ui-system/core";
+import { warehousesApi, queryKeys } from '@/lib/api';
+import { WarehouseFormData } from '@/types';
 
-export function NewWarehouseModal({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+interface NewWarehouseModalProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+export function NewWarehouseModal({ open, onClose }: NewWarehouseModalProps) {
   const queryClient = useQueryClient();
-  const [formData, setFormData] = useState({ name: '', short_code: '', address: '' });
+  const [formData, setFormData] = useState<WarehouseFormData>({
+    name: '',
+    short_code: '',
+    address: '',
+  });
+  const [error, setError] = useState('');
 
-  const mutation = useMutation({
-    mutationFn: (data: typeof formData) =>
-      fetch('/api/warehouses', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }),
+  const createMutation = useMutation({
+    mutationFn: () => warehousesApi.create(formData),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['warehouses'] });
-      onOpenChange(false);
+      queryClient.invalidateQueries({ queryKey: queryKeys.warehouses.list });
+      onClose();
       setFormData({ name: '', short_code: '', address: '' });
+      setError('');
+    },
+    onError: (err: Error) => {
+      setError(err.message);
     },
   });
 
-  const onSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    mutation.mutate(formData);
+    setError('');
+    createMutation.mutate();
   };
 
   return (
-    <Modal open={open} onOpenChange={onOpenChange} title="New Warehouse">
-      <form onSubmit={onSubmit} className="space-y-4">
-        <div className="space-y-2">
-          <Label>Name</Label>
-          <Input
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            placeholder="Main Warehouse"
-            required
-          />
-        </div>
-        <div className="space-y-2">
-          <Label>Short Code</Label>
-          <Input
-            value={formData.short_code}
-            onChange={(e) => setFormData({ ...formData, short_code: e.target.value.toUpperCase() })}
-            placeholder="WH"
-            maxLength={10}
-            required
-          />
-        </div>
-        <div className="space-y-2">
-          <Label>Address</Label>
-          <Input
-            value={formData.address}
-            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-            placeholder="123 Main St"
-          />
-        </div>
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+    <Dialog
+      isOpen={open}
+      onClose={onClose}
+      title="Create New Warehouse"
+      description="Add a new warehouse location"
+      footer={
+        <Row gap="8" horizontal="flex-end">
+          <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" disabled={mutation.isPending}>
-            {mutation.isPending ? 'Creating...' : 'Create'}
+          <Button 
+            variant="primary" 
+            onClick={handleSubmit}
+            loading={createMutation.isPending}
+            disabled={!formData.name || !formData.short_code}
+          >
+            Create
           </Button>
-        </div>
-      </form>
-    </Modal>
+        </Row>
+      }
+    >
+      <Column gap="16" fillWidth>
+        {error && (
+          <Card padding="12" radius="m" background="danger-alpha-weak">
+            <Text variant="body-default-s" onBackground="danger-strong">{error}</Text>
+          </Card>
+        )}
+        
+        <Input
+          id="name"
+          label="Warehouse Name"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          placeholder="Main Warehouse"
+          required
+        />
+        
+        <Input
+          id="short_code"
+          label="Short Code"
+          value={formData.short_code}
+          onChange={(e) => setFormData({ ...formData, short_code: e.target.value.toUpperCase() })}
+          placeholder="WH"
+          maxLength={10}
+          required
+        />
+        
+        <Input
+          id="address"
+          label="Address"
+          value={formData.address}
+          onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+          placeholder="123 Main Street, City"
+        />
+      </Column>
+    </Dialog>
   );
 }
 ```
 
+## Once UI Components Used
+| Component | Purpose |
+|-----------|---------|
+| `Column` | Vertical layout |
+| `Row` | Horizontal layout |
+| `Grid` | Responsive grid (3 cols desktop, 2 tablet, 1 mobile) |
+| `Card` | Content containers with hover effects |
+| `Text` | Typography |
+| `Button` | Actions |
+| `Input` | Form inputs |
+| `Badge` | Short code display |
+| `Dialog` | Modal for creating |
+
+## React Query Integration
+```tsx
+// List warehouses
+const { data, isLoading } = useQuery({
+  queryKey: queryKeys.warehouses.list,
+  queryFn: () => warehousesApi.list(),
+});
+
+// Create warehouse
+const createMutation = useMutation({
+  mutationFn: () => warehousesApi.create(formData),
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.warehouses.list });
+  },
+});
+```
+
 ## API Integration
-- GET `/api/warehouses`
-- POST `/api/warehouses`
-- PUT `/api/warehouses/:id`
-- DELETE `/api/warehouses/:id`
+- GET `/api/warehouses` - List all warehouses
+- POST `/api/warehouses` - Create warehouse
+- PUT `/api/warehouses/:id` - Update warehouse
+- DELETE `/api/warehouses/:id` - Delete warehouse
+
+## Features
+1. ✅ Responsive grid (3/2/1 columns)
+2. ✅ Card layout with hover effects
+3. ✅ Badge for short code
+4. ✅ Modal dialog for creation
+5. ✅ Form validation
+6. ✅ Loading and empty states
+7. ✅ Error handling

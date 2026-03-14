@@ -1,4 +1,4 @@
-# Register Page
+# Register Page - Once UI Implementation
 
 ## Route
 `/register`
@@ -10,124 +10,247 @@ src/app/(auth)/register/
 └── RegisterForm.tsx
 ```
 
-## UI Components
-
-### Form Fields
-| Field | Type | Validation |
-|-------|------|------------|
-| name | text | Required |
-| email | email | Required, valid email |
-| password | password | Required, min 8 chars |
-| confirmPassword | password | Required, must match |
-
-### Actions
-- Register button (primary)
-- Login link
-
-## Component Code
-
-### page.tsx
+## page.tsx
 ```tsx
 import { RegisterForm } from './RegisterForm';
 
 export default function RegisterPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
-      <div className="w-full max-w-md p-8 bg-white rounded-xl shadow-2xl">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-slate-900">Create Account</h1>
-          <p className="text-slate-500 mt-2">Start managing your inventory</p>
-        </div>
-        <RegisterForm />
-      </div>
-    </div>
+    <RegisterForm />
   );
 }
 ```
 
-### RegisterForm.tsx
+## RegisterForm.tsx
 ```tsx
-'use client';
+"use client";
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import {
+  Column,
+  Row,
+  Card,
+  Text,
+  Input,
+  Button,
+  Icon,
+} from "@once-ui-system/core";
+import { authApi } from '@/lib/api';
+import { useMutation } from '@tanstack/react-query';
 
 export function RegisterForm() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+  });
   const [error, setError] = useState('');
 
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  const registerMutation = useMutation({
+    mutationFn: () => authApi.register({
+      name: formData.name,
+      email: formData.email,
+      password: formData.password,
+      password_confirmation: formData.confirmPassword,
+    }),
+    onSuccess: () => {
+      router.push('/login');
+    },
+    onError: (err: Error) => {
+      setError(err.message || 'Registration failed');
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
 
-    const formData = new FormData(e.currentTarget);
-    
-    if (formData.get('password') !== formData.get('confirmPassword')) {
+    if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
-      setLoading(false);
       return;
     }
 
-    const res = await fetch('/api/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({
-        name: formData.get('name'),
-        email: formData.get('email'),
-        password: formData.get('password'),
-      }),
-    });
-
-    if (!res.ok) {
-      const data = await res.json();
-      setError(data.error || 'Registration failed');
-      setLoading(false);
+    if (formData.password.length < 8) {
+      setError('Password must be at least 8 characters');
       return;
     }
 
-    router.push('/login');
-  }
+    registerMutation.mutate();
+  };
+
+  const updateField = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
-      {error && (
-        <div className="p-3 text-sm text-red-500 bg-red-50 rounded-lg">
-          {error}
-        </div>
-      )}
-      <div className="space-y-2">
-        <Label htmlFor="name">Full Name</Label>
-        <Input id="name" name="name" placeholder="John Doe" required />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
-        <Input id="email" name="email" type="email" placeholder="name@example.com" required />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
-        <Input id="password" name="password" type="password" minLength={8} required />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="confirmPassword">Confirm Password</Label>
-        <Input id="confirmPassword" name="confirmPassword" type="password" required />
-      </div>
-      <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? 'Creating account...' : 'Create Account'}
-      </Button>
-      <div className="text-center text-sm text-slate-500">
-        Already have an account?{' '}
-        <a href="/login" className="text-blue-600 hover:underline">
-          Sign in
-        </a>
-      </div>
-    </form>
+    <Column 
+      fillWidth 
+      horizontal="center" 
+      vertical="center"
+      background="page"
+      minHeight="100vh"
+      paddingX="24"
+    >
+      <Card 
+        padding="32" 
+        radius="xl" 
+        direction="column" 
+        gap="24"
+        maxWidth="400"
+        fillWidth
+      >
+        <Column gap="8" horizontal="center">
+          <Row gap="8" vertical="center">
+            <Icon name="package" size="xl" onBackground="brand-strong" />
+            <Text variant="heading-default-l" fontWeight="xl">
+              CoreInventory
+            </Text>
+          </Row>
+          <Text variant="body-default-s" onBackground="neutral-weak">
+            Create your account
+          </Text>
+        </Column>
+
+        {error && (
+          <Card 
+            padding="12" 
+            radius="m" 
+            background="danger-alpha-weak"
+            border="danger-medium"
+          >
+            <Text variant="body-default-s" onBackground="danger-strong">
+              {error}
+            </Text>
+          </Card>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <Column gap="16">
+            <Input
+              id="name"
+              label="Full Name"
+              type="text"
+              value={formData.name}
+              onChange={(e) => updateField('name', e.target.value)}
+              placeholder="John Doe"
+              required
+              autoComplete="name"
+            />
+            
+            <Input
+              id="email"
+              label="Email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => updateField('email', e.target.value)}
+              placeholder="name@example.com"
+              required
+              autoComplete="email"
+            />
+            
+            <Input
+              id="password"
+              label="Password"
+              type="password"
+              value={formData.password}
+              onChange={(e) => updateField('password', e.target.value)}
+              placeholder="At least 8 characters"
+              required
+              minLength={8}
+              autoComplete="new-password"
+            />
+            
+            <Input
+              id="confirmPassword"
+              label="Confirm Password"
+              type="password"
+              value={formData.confirmPassword}
+              onChange={(e) => updateField('confirmPassword', e.target.value)}
+              placeholder="Confirm your password"
+              required
+              autoComplete="new-password"
+            />
+
+            <Button 
+              type="submit" 
+              variant="primary" 
+              size="l" 
+              fillWidth
+              loading={registerMutation.isPending}
+            >
+              {registerMutation.isPending ? 'Creating account...' : 'Create Account'}
+            </Button>
+          </Column>
+        </form>
+
+        <Column gap="12" horizontal="center">
+          <Row gap="4" vertical="center">
+            <Text variant="body-default-s" onBackground="neutral-weak">
+              Already have an account?
+            </Text>
+            <Text 
+              variant="body-default-s" 
+              onBackground="brand-strong"
+              style={{ cursor: 'pointer' }}
+              onClick={() => router.push('/login')}
+            >
+              Sign in
+            </Text>
+          </Row>
+        </Column>
+      </Card>
+    </Column>
   );
 }
+```
+
+## Once UI Components Used
+| Component | Purpose |
+|-----------|---------|
+| `Column` | Vertical layout container |
+| `Row` | Horizontal layout container |
+| `Card` | Content container with styling |
+| `Text` | Typography with variant props |
+| `Input` | Form input with built-in label |
+| `Button` | Actions with variant, size, loading states |
+| `Icon` | Icon display |
+
+## React Query Integration
+```tsx
+const registerMutation = useMutation({
+  mutationFn: () => authApi.register({
+    name: formData.name,
+    email: formData.email,
+    password: formData.password,
+    password_confirmation: formData.confirmPassword,
+  }),
+  onSuccess: () => {
+    router.push('/login');
+  },
+  onError: (err: Error) => {
+    setError(err.message);
+  },
+});
 ```
 
 ## API Integration
 - POST `/api/auth/register`
+- Request body: `{ name, email, password, password_confirmation }`
+
+## Validation Rules
+1. ✅ Name - required
+2. ✅ Email - required, valid email format
+3. ✅ Password - required, minimum 8 characters
+4. ✅ Confirm Password - must match password
+
+## Features
+1. ✅ Responsive centered layout
+2. ✅ Loading state on button
+3. ✅ Error message display with danger styling
+4. ✅ Form validation (required, min length, password match)
+5. ✅ Navigation to login page
+6. ✅ Once UI semantic props for all styling
+7. ✅ Auto-redirect on success

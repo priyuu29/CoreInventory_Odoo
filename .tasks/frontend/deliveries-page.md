@@ -1,4 +1,4 @@
-# Deliveries List Page
+# Deliveries List Page - Once UI Implementation
 
 ## Route
 `/deliveries`
@@ -12,182 +12,446 @@ src/app/(dashboard)/deliveries/
 └── NewDeliveryModal.tsx
 ```
 
-## UI Layout
-
-```
-┌─────────────────────────────────────────────────────────┐
-│ Deliveries                           [+ New Delivery]  │
-├─────────────────────────────────────────────────────────┤
-│ [Search...] [All Status v] [All Warehouse v] [List|Kanban]│
-├─────────────────────────────────────────────────────────┤
-│ Reference   │ To       │ From     │ Contact │ Date   │ Status│
-├─────────────┼──────────┼──────────┼─────────┼────────┼───────┤
-│ WH/OUT/0001 │ Customer │ WH/Stock │ Azure   │ Jan 10 │ Wait  │
-│ WH/OUT/0002 │ Customer │ WH/Stock │ John    │ Jan 11 │ Done  │
-└─────────────────────────────────────────────────────────┘
-```
-
 ## page.tsx
 ```tsx
-'use client';
+"use client";
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { PageHeader } from '@/components/layout/PageHeader';
-import { SearchBar } from '@/components/shared/SearchBar';
-import { Button } from '@/components/ui/button';
-import { DeliveriesTable } from './DeliveriesTable';
-import { DeliveriesKanban } from './DeliveriesKanban';
-import { NewDeliveryModal } from './NewDeliveryModal';
+import { useRouter } from 'next/navigation';
+import {
+  Column,
+  Row,
+  Card,
+  Text,
+  Button,
+  Input,
+  Select,
+  Badge,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  Grid,
+} from "@once-ui-system/core";
+import { deliveriesApi, warehousesApi, queryKeys } from '@/lib/api';
+import { Delivery, DeliveryFilters } from '@/types';
 
 export default function DeliveriesPage() {
+  const router = useRouter();
   const [view, setView] = useState<'list' | 'kanban'>('list');
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('all');
+  const [status, setStatus] = useState<string>('all');
   const [modalOpen, setModalOpen] = useState(false);
 
+  const filters: DeliveryFilters = {
+    search: search || undefined,
+    status: status as DeliveryFilters['status'],
+  };
+
   const { data, isLoading } = useQuery({
-    queryKey: ['deliveries', search, status],
-    queryFn: () => fetch(`/api/deliveries?search=${search}&status=${status}`).then(res => res.json()),
+    queryKey: queryKeys.deliveries.list(filters),
+    queryFn: () => deliveriesApi.list(filters),
   });
 
-  return (
-    <div className="space-y-4">
-      <PageHeader
-        title="Deliveries"
-        actions={<Button onClick={() => setModalOpen(true)}>+ New Delivery</Button>}
-      />
+  const deliveries = data?.data || [];
 
-      <div className="flex items-center gap-4">
-        <SearchBar placeholder="Search deliveries..." onChange={setSearch} />
-        <select
-          className="border rounded-md px-3 py-2"
+  return (
+    <Column fillWidth gap="24" padding="24">
+      {/* Header */}
+      <Row vertical="center" horizontal="space-between">
+        <Text variant="heading-default-xl">Deliveries</Text>
+        <Button variant="primary" prefixIcon="plus" onClick={() => setModalOpen(true)}>
+          New Delivery
+        </Button>
+      </Row>
+
+      {/* Filters */}
+      <Row gap="12" vertical="center" wrap>
+        <Input
+          id="search"
+          label="Search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search deliveries..."
+          style={{ width: '240px' }}
+        />
+        <Select
+          id="status"
+          label="Status"
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-        >
-          <option value="all">All Status</option>
-          <option value="draft">Draft</option>
-          <option value="waiting">Waiting</option>
-          <option value="ready">Ready</option>
-          <option value="done">Done</option>
-        </select>
-        <div className="flex gap-1 ml-auto">
+          options={[
+            { value: 'all', label: 'All Status' },
+            { value: 'draft', label: 'Draft' },
+            { value: 'waiting', label: 'Waiting' },
+            { value: 'ready', label: 'Ready' },
+            { value: 'done', label: 'Done' },
+          ]}
+        />
+        <Row gap="4" ml="auto">
           <Button
-            variant={view === 'list' ? 'default' : 'outline'}
-            size="sm"
+            variant={view === 'list' ? 'primary' : 'tertiary'}
+            size="s"
             onClick={() => setView('list')}
           >
             List
           </Button>
           <Button
-            variant={view === 'kanban' ? 'default' : 'outline'}
-            size="sm"
+            variant={view === 'kanban' ? 'primary' : 'tertiary'}
+            size="s"
             onClick={() => setView('kanban')}
           >
             Kanban
           </Button>
-        </div>
-      </div>
+        </Row>
+      </Row>
 
-      {view === 'list' ? (
-        <DeliveriesTable deliveries={data?.data || []} isLoading={isLoading} />
+      {/* Content */}
+      {isLoading ? (
+        <Card padding="32" horizontal="center">
+          <Text variant="body-default-m">Loading deliveries...</Text>
+        </Card>
+      ) : view === 'list' ? (
+        <DeliveriesTable 
+          deliveries={deliveries} 
+          onRowClick={(id) => router.push(`/deliveries/${id}`)}
+        />
       ) : (
-        <DeliveriesKanban deliveries={data?.data || []} />
+        <DeliveriesKanban 
+          deliveries={deliveries}
+          onCardClick={(id) => router.push(`/deliveries/${id}`)}
+        />
       )}
 
-      <NewDeliveryModal open={modalOpen} onOpenChange={setModalOpen} />
-    </div>
+      {/* New Delivery Modal */}
+      {modalOpen && (
+        <NewDeliveryModal 
+          open={modalOpen} 
+          onClose={() => setModalOpen(false)}
+        />
+      )}
+    </Column>
   );
 }
-```
 
-### DeliveriesTable.tsx
-```tsx
-import { Link } from 'next/link';
-import { StatusBadge } from '@/components/shared/StatusBadge';
+// Deliveries Table Component
+interface DeliveriesTableProps {
+  deliveries: Delivery[];
+  onRowClick: (id: string) => void;
+}
 
-export function DeliveriesTable({ deliveries, isLoading }: { deliveries: any[]; isLoading: boolean }) {
-  if (isLoading) return <div className="p-4">Loading...</div>;
+function DeliveriesTable({ deliveries, onRowClick }: DeliveriesTableProps) {
+  if (deliveries.length === 0) {
+    return (
+      <Card padding="32" horizontal="center">
+        <Text variant="body-default-m" onBackground="neutral-weak">No deliveries found</Text>
+      </Card>
+    );
+  }
 
   return (
-    <div className="border rounded-lg overflow-hidden">
-      <table className="w-full">
-        <thead className="bg-slate-50 border-b">
-          <tr>
-            <th className="text-left p-3 font-medium">Reference</th>
-            <th className="text-left p-3 font-medium">To</th>
-            <th className="text-left p-3 font-medium">From</th>
-            <th className="text-left p-3 font-medium">Contact</th>
-            <th className="text-left p-3 font-medium">Date</th>
-            <th className="text-left p-3 font-medium">Status</th>
-          </tr>
-        </thead>
-        <tbody>
+    <Card padding="0" radius="l" overflow="hidden">
+      <Table>
+        <Thead>
+          <Tr>
+            <Th>Reference</Th>
+            <Th>To</Th>
+            <Th>From</Th>
+            <Th>Contact</Th>
+            <Th>Date</Th>
+            <Th>Status</Th>
+          </Tr>
+        </Thead>
+        <Tbody>
           {deliveries.map((delivery) => (
-            <tr key={delivery.id} className="border-b hover:bg-slate-50">
-              <td className="p-3">
-                <Link href={`/deliveries/${delivery.id}`} className="text-blue-600 hover:underline">
+            <Tr 
+              key={delivery.id} 
+              onClick={() => onRowClick(delivery.id)}
+              hover={{ background: 'neutral-alpha-weak' }}
+              style={{ cursor: 'pointer' }}
+            >
+              <Td>
+                <Text variant="body-default-m" fontWeight="m" onBackground="brand-strong">
                   {delivery.reference}
-                </Link>
-              </td>
-              <td className="p-3">{delivery.destination}</td>
-              <td className="p-3">{delivery.warehouse}</td>
-              <td className="p-3">{delivery.contact}</td>
-              <td className="p-3">{delivery.schedule_date}</td>
-              <td className="p-3">
+                </Text>
+              </Td>
+              <Td>{delivery.destination || '-'}</Td>
+              <Td>{delivery.warehouse?.name || '-'}</Td>
+              <Td>{delivery.contact || '-'}</Td>
+              <Td>{delivery.schedule_date ? new Date(delivery.schedule_date).toLocaleDateString() : '-'}</Td>
+              <Td>
                 <StatusBadge status={delivery.status} />
-              </td>
-            </tr>
+              </Td>
+            </Tr>
           ))}
-        </tbody>
-      </table>
-    </div>
+        </Tbody>
+      </Table>
+    </Card>
   );
 }
-```
 
-### DeliveriesKanban.tsx
-```tsx
-import { KanbanBoard } from '@/components/shared/KanbanBoard';
-import { Link } from 'next/link';
+// Deliveries Kanban Component
+interface DeliveriesKanbanProps {
+  deliveries: Delivery[];
+  onCardClick: (id: string) => void;
+}
 
-const columns = ['draft', 'waiting', 'ready', 'done'];
-
-export function DeliveriesKanban({ deliveries }: { deliveries: any[] }) {
+function DeliveriesKanban({ deliveries, onCardClick }: DeliveriesKanbanProps) {
+  const columns = ['draft', 'waiting', 'ready', 'done'];
+  
   const grouped = columns.reduce((acc, status) => {
     acc[status] = deliveries.filter((d) => d.status === status);
     return acc;
-  }, {} as Record<string, any[]>);
+  }, {} as Record<string, Delivery[]>);
 
   return (
-    <KanbanBoard columns={columns}>
+    <Grid columns="4" gap="16" m={{ columns: 2 }} s={{ columns: 1 }}>
       {columns.map((status) => (
-        <div key={status} className="space-y-2">
-          <h3 className="font-medium capitalize text-sm text-slate-500">
-            {status} ({grouped[status]?.length || 0})
-          </h3>
-          {grouped[status]?.map((delivery) => (
-            <Link
-              key={delivery.id}
-              href={`/deliveries/${delivery.id}`}
-              className="block p-3 bg-white border rounded-lg hover:shadow-md transition-shadow"
-            >
-              <p className="font-medium">{delivery.reference}</p>
-              <p className="text-sm text-slate-500">{delivery.destination}</p>
-            </Link>
-          ))}
-        </div>
+        <Column key={status} gap="12">
+          <Card padding="12" radius="m" background="neutral-alpha-weak">
+            <Row vertical="center" horizontal="space-between">
+              <Text variant="label-default-m" fontWeight="m" style={{ textTransform: 'capitalize' }}>
+                {status}
+              </Text>
+              <Badge variant="neutral" size="s">
+                {grouped[status]?.length || 0}
+              </Badge>
+            </Row>
+          </Card>
+          <Column gap="8">
+            {grouped[status]?.map((delivery) => (
+              <Card 
+                key={delivery.id} 
+                padding="16" 
+                radius="m" 
+                direction="column" 
+                gap="4"
+                hover={{ scale: '2' }}
+                onClick={() => onCardClick(delivery.id)}
+                style={{ cursor: 'pointer' }}
+              >
+                <Text variant="body-default-m" fontWeight="m">
+                  {delivery.reference}
+                </Text>
+                <Text variant="body-default-xs" onBackground="neutral-weak">
+                  {delivery.destination || 'No destination'}
+                </Text>
+              </Card>
+            ))}
+          </Column>
+        </Column>
       ))}
-    </KanbanBoard>
+    </Grid>
+  );
+}
+
+// Status Badge Component
+function StatusBadge({ status }: { status: string }) {
+  const config: Record<string, { label: string; variant: 'neutral' | 'brand' | 'success' | 'warning' }> = {
+    draft: { label: 'Draft', variant: 'neutral' },
+    waiting: { label: 'Waiting', variant: 'warning' },
+    ready: { label: 'Ready', variant: 'brand' },
+    done: { label: 'Done', variant: 'success' },
+  };
+
+  const { label, variant } = config[status] || { label: status, variant: 'neutral' };
+
+  return <Badge variant={variant} size="s">{label}</Badge>;
+}
+```
+
+## NewDeliveryModal.tsx
+```tsx
+"use client";
+
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  Dialog,
+  Button,
+  Input,
+  Select,
+  Column,
+  Row,
+  Text,
+} from "@once-ui-system/core";
+import { deliveriesApi, warehousesApi, queryKeys } from '@/lib/api';
+
+interface NewDeliveryModalProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+export function NewDeliveryModal({ open, onClose }: NewDeliveryModalProps) {
+  const queryClient = useQueryClient();
+  const [formData, setFormData] = useState({
+    destination: '',
+    warehouse_id: '',
+    location_id: '',
+    responsible: '',
+    contact: '',
+    schedule_date: '',
+    notes: '',
+  });
+
+  const { data: warehousesData } = useQuery({
+    queryKey: queryKeys.warehouses.list,
+    queryFn: () => warehousesApi.list(),
+  });
+
+  const createMutation = useMutation({
+    mutationFn: () => deliveriesApi.create(formData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['deliveries'] });
+      onClose();
+      setFormData({
+        destination: '',
+        warehouse_id: '',
+        location_id: '',
+        responsible: '',
+        contact: '',
+        schedule_date: '',
+        notes: '',
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    createMutation.mutate();
+  };
+
+  const warehouses = warehousesData?.data || [];
+
+  return (
+    <Dialog
+      isOpen={open}
+      onClose={onClose}
+      title="Create New Delivery"
+      description="Fill in the details to create a new delivery"
+      footer={
+        <Row gap="8" horizontal="flex-end">
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={handleSubmit}
+            loading={createMutation.isPending}
+            disabled={!formData.warehouse_id}
+          >
+            Create Delivery
+          </Button>
+        </Row>
+      }
+    >
+      <Column gap="16" fillWidth>
+        <Input
+          id="destination"
+          label="Destination"
+          value={formData.destination}
+          onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
+          placeholder="Enter destination"
+        />
+        
+        <Select
+          id="warehouse"
+          label="Warehouse"
+          value={formData.warehouse_id}
+          onChange={(e) => setFormData({ ...formData, warehouse_id: e.target.value })}
+          options={[
+            { value: '', label: 'Select warehouse' },
+            ...warehouses.map((w: any) => ({ value: w.id, label: w.name })),
+          ]}
+        />
+        
+        <Input
+          id="responsible"
+          label="Responsible"
+          value={formData.responsible}
+          onChange={(e) => setFormData({ ...formData, responsible: e.target.value })}
+          placeholder="Enter responsible person"
+        />
+        
+        <Input
+          id="contact"
+          label="Contact"
+          value={formData.contact}
+          onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
+          placeholder="Enter contact number"
+        />
+        
+        <Input
+          id="schedule_date"
+          label="Schedule Date"
+          type="date"
+          value={formData.schedule_date}
+          onChange={(e) => setFormData({ ...formData, schedule_date: e.target.value })}
+        />
+        
+        <Input
+          id="notes"
+          label="Notes"
+          value={formData.notes}
+          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+          placeholder="Additional notes"
+        />
+      </Column>
+    </Dialog>
   );
 }
 ```
+
+## Once UI Components Used
+| Component | Purpose |
+|-----------|---------|
+| `Column` | Vertical layout |
+| `Row` | Horizontal layout |
+| `Grid` | Responsive grid (4 cols desktop, 2 tablet, 1 mobile) |
+| `Card` | Content containers |
+| `Text` | Typography |
+| `Button` | Actions |
+| `Input` | Form inputs |
+| `Select` | Dropdowns |
+| `Badge` | Status indicators |
+| `Table`, `Thead`, `Tbody`, `Tr`, `Th`, `Td` | Data table |
+| `Dialog` | Modal |
+
+## React Query Integration
+```tsx
+// List deliveries
+const { data, isLoading } = useQuery({
+  queryKey: queryKeys.deliveries.list(filters),
+  queryFn: () => deliveriesApi.list(filters),
+});
+
+// Create delivery
+const createMutation = useMutation({
+  mutationFn: () => deliveriesApi.create(formData),
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['deliveries'] });
+  },
+});
+```
+
+## API Integration
+- GET `/api/deliveries` - List with filters
+- POST `/api/deliveries` - Create new delivery
+- Filters: search, status, warehouse_id, date_from, date_to
 
 ## Status Flow
 ```
 draft → waiting → ready → done
 ```
 
-## API Integration
-- GET `/api/deliveries`
-- POST `/api/deliveries`
+## Features
+1. ✅ List and Kanban view toggle (4 columns for delivery status)
+2. ✅ Search and status filters
+3. ✅ Responsive grid
+4. ✅ Status badge component
+5. ✅ Modal for creating new delivery
+6. ✅ Loading states
+7. ✅ Empty state handling
