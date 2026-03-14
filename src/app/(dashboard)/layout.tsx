@@ -189,7 +189,7 @@ export default function ProtectedLayout({
         }
         @media (prefers-color-scheme: dark) {
           .sidebar {
-            background: #1e293b;
+            background: #0A0A0A;
           }
         }
         .logo {
