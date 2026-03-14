@@ -97,10 +97,7 @@ export default function ProtectedLayout({
       )}
 
       {/* Sidebar */}
-      <aside
-        className={`sidebar ${sidebarOpen ? "open" : ""}`}
-        style={{ background: "var(--surface)" } as React.CSSProperties}
-      >
+      <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
         {/* Logo */}
         <div className="logo" onClick={() => router.push("/dashboard")}>
           <Icon name="package" size="l" onBackground="brand-strong" />
@@ -182,12 +179,18 @@ export default function ProtectedLayout({
           height: 100vh;
           width: 260px;
           min-width: 260px;
+          background: #ffffff;
           border-right: 1px solid var(--neutral-alpha-weak);
           display: flex;
           flex-direction: column;
           padding: 16px;
           z-index: 50;
           transition: transform 0.3s ease;
+        }
+        @media (prefers-color-scheme: dark) {
+          .sidebar {
+            background: #1e293b;
+          }
         }
         .logo {
           display: flex;
